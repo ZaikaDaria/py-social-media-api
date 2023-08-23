@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from social.models import Hashtag, Post, Profile
+from social.models import Hashtag, Post, Profile, Comment, Like
 
 
 class HashtagSerializer(serializers.ModelSerializer):
@@ -46,3 +46,15 @@ class ProfileSerializer(serializers.ModelSerializer):
             "follow",
             "posts",
         )
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ("post", "user", "content", "created_at")
+
+
+class LikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Like
+        fields = ("post", "user", "is_liked")
