@@ -62,9 +62,7 @@ class PostViewSet(viewsets.ModelViewSet):
         post = self.get_object()
         serializer = self.get_serializer(post, data=request.data)
 
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer.is_valid(raise_exception=True)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -98,7 +96,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
             profile.last_name = serializer.validated_data.get("last_name")
             profile.bio = serializer.validated_data.get("bio")
             profile.email = serializer.validated_data.get("email")
-            profile.follow.set(serializer.validated_data.get("follow", []))
+            profile.follow_profiles.set(serializer.validated_data.get("follow", []))
             profile.save()
         serializer.instance = profile
 
@@ -112,9 +110,14 @@ class ProfileViewSet(viewsets.ModelViewSet):
         profile = self.get_object()
         user_to_follow = get_object_or_404(User, pk=pk)
 
-        profile.follow.add(user_to_follow)
+        profile.follow_profiles.add(user_to_follow)
 
-        if request.user != user_to_follow:
+        if (
+            profile != user_to_follow
+            and user_to_follow not in profile.follow_profiles.all()
+        ):
+            profile.follow_profiles.add(user_to_follow)
+            profile.save()
             return Response(
                 "User was followed successfully.",
                 status=status.HTTP_200_OK,
@@ -135,7 +138,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
         profile = self.get_object()
         user = request.user
 
-        profile.follow.remove(user)
+        profile.follow_profiles.remove(user)
         return Response(
             {"detail": "You have successfully unsubscribed from this profile."},
             status=status.HTTP_200_OK,

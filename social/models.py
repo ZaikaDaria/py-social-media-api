@@ -16,7 +16,7 @@ class Profile(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="profile",
+        related_name="profiles",
         unique=True,
     )
     first_name = models.CharField(max_length=64, blank=True)
@@ -25,7 +25,7 @@ class Profile(models.Model):
     email = models.EmailField(max_length=254, blank=True, null=True)
     follow = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
-        related_name="follow_profile",
+        related_name="follow_profiles",
         blank=True,
     )
 
@@ -37,7 +37,7 @@ def post_image_file_path(instance, filename):
     _, extension = os.path.splitext(filename)
     filename = f"{slugify(instance.title)}-{uuid.uuid4()}{extension}"
 
-    return os.path.join("uploads/posts/", filename)
+    return os.path.join("uploads", "posts", filename)
 
 
 class Post(models.Model):
