@@ -22,9 +22,6 @@ python manage.py runserver
 ```
 SECRET_KEY=SECRET_KEY
 ```
-* Make migrations
-* Use "python manage.py runserver" to start
-
 # To use authenticate system
 
 * /api/user/register - to create user
