@@ -1,3 +1,6 @@
+from django.http import Http404
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
@@ -5,13 +8,15 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticate
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from social.models import Hashtag, Post, Profile
+from social.models import Hashtag, Post, Profile, Comment, Like
 from social.permissions import IsAuthorOrReadOnly
 from social.serializers import (
     HashtagSerializer,
     PostSerializer,
     PostImageSerializer,
     ProfileSerializer,
+    CommentSerializer,
+    LikeSerializer,
 )
 from user.models import User
 
@@ -66,18 +71,49 @@ class PostViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # Only for documentation
-        @extend_schema(
-            parameters=[
-                OpenApiParameter(
-                    "hashtags",
-                    type=OpenApiTypes.INT,
-                    description="Filter by hashtags id (ex. ?hashtags=1)",
-                )
-            ]
-        )
-        def list(self, request, *args, **kwargs):
-            return super().list(request, *args, **kwargs)
+    @action(
+        methods=["POST"],
+        detail=True,
+        url_path="like",
+        permission_classes=(IsAuthenticated,),
+    )
+    def likes(self, request, pk=None):
+        post = self.get_object()
+        user = self.request.user
+
+        try:
+            like = get_object_or_404(Like, post=post, user=user)
+            like.delete()
+        except Http404:
+            Like.objects.create(post=post, user=user, is_liked=True)
+
+        return Response(status=status.HTTP_200_OK)
+
+    @action(
+        methods=["POST"],
+        detail=True,
+        url_path="add_comment",
+        permission_classes=(IsAuthenticated,),
+    )
+    def add_comment(self, request, pk=None):
+        post = self.get_object()
+        user = self.request.user
+
+        Comment.objects.create(post=post, user=user, content=request.data["content"])
+
+        return Response(status=status.HTTP_200_OK)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "hashtags",
+                type=OpenApiTypes.INT,
+                description="Filter by hashtags id (ex. ?hashtags=1)",
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
@@ -143,3 +179,25 @@ class ProfileViewSet(viewsets.ModelViewSet):
             {"detail": "You have successfully unsubscribed from this profile."},
             status=status.HTTP_200_OK,
         )
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
+
+    def get_queryset(self):
+        queryset = self.queryset.select_related("post")
+        user = self.request.user
+
+        queryset = queryset.filter(user=user)
+
+        return queryset
+
+
+class LikeViewSet(viewsets.ModelViewSetw):
+    queryset = Like.objects.all()
+    serializer_class = LikeSerializer
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
