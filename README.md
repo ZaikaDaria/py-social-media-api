@@ -20,7 +20,7 @@ python manage.py runserver
 * Create .env file in base directory
 * Fill .env file with data
 ```
-SECRET_KEY=DJANGO_SECRET_KEY
+SECRET_KEY=SECRET_KEY
 ```
 * Make migrations
 * Use "python manage.py runserver" to start
