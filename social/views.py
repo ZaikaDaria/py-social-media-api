@@ -81,11 +81,10 @@ class PostViewSet(viewsets.ModelViewSet):
         post = self.get_object()
         user = self.request.user
 
-        try:
-            like = get_object_or_404(Like, post=post, user=user)
+        like, created = Like.objects.get_or_create(post=post, user=user, defaults={'is_liked': True})
+
+        if not created:
             like.delete()
-        except Http404:
-            Like.objects.create(post=post, user=user, is_liked=True)
 
         return Response(status=status.HTTP_200_OK)
 
